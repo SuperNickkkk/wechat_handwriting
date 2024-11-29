@@ -1,0 +1,16 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/result/result"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#fff",
+    "navigationBarTitleText": "手写字体评价",
+    "navigationBarTextStyle": "black"
+  },
+  "networkTimeout": {
+    "request": 30000,
+    "uploadFile": 30000
+  }
+}

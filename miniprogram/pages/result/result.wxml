@@ -1,0 +1,68 @@
+<!--pages/result/result.wxml-->
+<view class="container">
+  <view class="result-card">
+    <view class="title">评价结果</view>
+    <view class="content">
+      <block wx:if="{{loading}}">
+        <text class="loading">正在加载评价结果...</text>
+      </block>
+      <block wx:elif="{{result}}">
+        <!-- 年龄段判断 -->
+        <view class="info-section">
+          <text class="label">书写者年龄段：</text>
+          <text class="value">{{result.ageGroup}}</text>
+        </view>
+
+        <!-- 综合评分 -->
+        <view class="score-section">
+          <text class="label">综合评分：</text>
+          <text class="score-value">{{result.score}}分</text>
+        </view>
+
+        <!-- 详细评价 -->
+        <view class="section">
+          <view class="section-title">
+            <view class="title-bar"></view>
+            <text>详细评价</text>
+          </view>
+          <view class="comment-list">
+            <view class="comment-item" wx:for="{{result.comments}}" wx:key="index">
+              {{item}}
+            </view>
+          </view>
+        </view>
+
+        <!-- 改进建议 -->
+        <view class="section">
+          <view class="section-title">
+            <view class="title-bar"></view>
+            <text>改进建议</text>
+          </view>
+          <view class="list">
+            <view class="list-item" wx:for="{{result.suggestions}}" wx:key="index">
+              {{index + 1}}. {{item}}
+            </view>
+          </view>
+        </view>
+
+        <!-- 练字方法 -->
+        <view class="section">
+          <view class="section-title">
+            <view class="title-bar"></view>
+            <text>练字方法建议</text>
+          </view>
+          <view class="list">
+            <view class="list-item" wx:for="{{result.methods}}" wx:key="index">
+              {{index + 1}}. {{item}}
+            </view>
+          </view>
+        </view>
+      </block>
+      <block wx:else>
+        <text class="error">{{error || '获取结果失败，请返回重试'}}</text>
+      </block>
+    </view>
+  </view>
+  
+  <button class="back-btn" bindtap="backToHome">返回重新上传</button>
+</view>

@@ -1,0 +1,24 @@
+<!--index.wxml-->
+<view class="container">
+  <view class="title">手写字体评价</view>
+  
+  <view class="upload-container">
+    <!-- 图片预览区域 -->
+    <view class="preview-area" wx:if="{{tempImagePath}}">
+      <image mode="aspectFit" src="{{tempImagePath}}" />
+    </view>
+    
+    <!-- 上传按钮区域 -->
+    <view class="button-group" wx:if="{{!tempImagePath}}">
+      <button class="upload-btn" bindtap="chooseImage">从相册选择</button>
+      <button class="upload-btn" bindtap="takePhoto">拍照上传</button>
+      <button class="test-btn" bindtap="testAPICall">测试API</button>
+    </view>
+    
+    <!-- 操作按钮区域 -->
+    <view class="action-group" wx:if="{{tempImagePath}}">
+      <button class="action-btn" type="primary" bindtap="uploadImage">开始分析</button>
+      <button class="action-btn" bindtap="resetImage">重新选择</button>
+    </view>
+  </view>
+</view>

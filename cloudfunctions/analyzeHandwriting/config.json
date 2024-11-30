@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "openapi": [],
+    "cloud": {
+      "type": "collection",
+      "value": {
+        "analysis_records": {
+          "read": true,
+          "write": true
+        }
+      }
+    }
+  }
+} 

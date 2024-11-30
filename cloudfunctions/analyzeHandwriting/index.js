@@ -1,50 +1,49 @@
-import config from '../config/api';
+const cloud = require('wx-server-sdk');
+const axios = require('axios');
 
-// 将图片转换为base64
-const imageToBase64 = (filePath) => {
-  return new Promise((resolve, reject) => {
-    wx.getFileSystemManager().readFile({
-      filePath,
-      encoding: 'base64',
-      success: res => {
-        resolve(res.data);
-      },
-      fail: err => {
-        reject(err);
-      }
-    });
-  });
+cloud.init({
+  env: cloud.DYNAMIC_CURRENT_ENV
+});
+
+// 从环境变量获取配置
+const API_KEY = process.env.OPENAI_API_KEY;
+const API_BASE_URL = process.env.API_BASE_URL;
+const MODEL = process.env.MODEL;
+
+// 配置API请求
+const headers = {
+  'Authorization': `Bearer ${API_KEY}`,
+  'Content-Type': 'application/json'
 };
 
-// 基础API请求函数
-const makeRequest = (url, data) => {
-  return new Promise((resolve, reject) => {
-    wx.request({
-      url,
-      method: 'POST',
-      header: config.HEADERS,
-      data,
-      success: (res) => {
-        console.log('请求成功:', res);
-        if (res.statusCode === 200) {
-          resolve(res.data);
-        } else {
-          reject(new Error(`请求失败: ${res.statusCode} - ${JSON.stringify(res.data)}`));
-        }
-      },
-      fail: (err) => {
-        console.error('请求错误:', err);
-        reject(err);
-      }
-    });
-  });
-};
-
-// 调用GPT-4V进行分析
-const analyzeHandwriting = async (base64Image) => {
+// 主函数
+exports.main = async (event, context) => {
   try {
+    // 检查模块是否正确加载
+    if (!cloud) {
+      throw new Error('wx-server-sdk 未正确加载');
+    }
+
+    const { fileID } = event;
+    console.log('开始处理请求:', {
+      fileID,
+      env: cloud.DYNAMIC_CURRENT_ENV,
+      context
+    });
+    
+    // 1. 从云存储下载图片
+    const res = await cloud.downloadFile({
+      fileID: fileID,
+    });
+    const buffer = res.fileContent;
+    
+    // 2. 转换为base64
+    const base64Image = buffer.toString('base64');
+    console.log('图片转换完成，准备发送请求');
+    
+    // 3. 构建请求数据
     const requestData = {
-      model: config.MODEL,
+      model: MODEL,
       messages: [
         {
           role: "system",
@@ -108,34 +107,52 @@ const analyzeHandwriting = async (base64Image) => {
       max_tokens: 2000
     };
 
-    console.log('发送分析请求数据:', requestData);
+    console.log('发送请求到:', `${API_BASE_URL}/chat/completions`);
     
-    const response = await makeRequest(
-      `${config.API_BASE_URL}/chat/completions`,
-      requestData
+    // 4. 发送API请求
+    const response = await axios.post(
+      `${API_BASE_URL}/chat/completions`,
+      requestData,
+      { headers }
     );
+
+    console.log('API响应:', response.data);
+
+    // 5. 解析响应
+    const result = parseAIResponse(response.data.choices[0].message.content);
     
-    console.log('分析响应数据:', response);
-    return parseAIResponse(response.choices[0].message.content);
+    // 6. 保存分析记录到数据库
+    const db = cloud.database();
+    await db.collection('analysis_records').add({
+      data: {
+        fileID,
+        result,
+        createdAt: db.serverDate(),
+        updatedAt: db.serverDate(),
+        _openid: cloud.getWXContext().OPENID,
+        env: cloud.DYNAMIC_CURRENT_ENV
+      }
+    });
+
+    return result;
 
   } catch (error) {
-    console.error('分析失败:', error);
-    throw error;
+    console.error('云函数执行错误:', error);
+    return {
+      error: error.message,
+      stack: error.stack
+    };
   }
 };
 
 // 解析AI返回的评价内容
-const parseAIResponse = (aiResponse) => {
+function parseAIResponse(aiResponse) {
   try {
-    console.log('解析AI响应:', aiResponse);
+    console.log('开始解析AI响应:', aiResponse);
 
     // 提取年龄段判断
-    const ageMatch = aiResponse.match(/年龄段判断[\s\S]*?\n([^#\n]+)/);
+    const ageMatch = aiResponse.match(/年龄段判断[\s\S]*?([^#\n]+)/);
     const ageGroup = ageMatch ? ageMatch[1].trim() : '未知';
-
-    // 提取分数和评分说明
-    const scoreSection = aiResponse.match(/总体评分\n(\d+)分。([^#]+)/);
-    const score = scoreSection ? parseInt(scoreSection[1]) : 0;
 
     // 提取专业评价内容
     const comments = [];
@@ -158,6 +175,10 @@ const parseAIResponse = (aiResponse) => {
         }
       }
     }
+
+    // 提取总体评分
+    const scoreMatch = aiResponse.match(/总体评分[\s\S]*?(\d+)分/);
+    const score = scoreMatch ? parseInt(scoreMatch[1]) : 0;
 
     // 提取改进建议
     const suggestionsSection = aiResponse.match(/改进建议([\s\S]*?)(?=###\s*练字方法|$)/);
@@ -184,28 +205,17 @@ const parseAIResponse = (aiResponse) => {
       rawResponse: aiResponse
     };
 
-    // 验证结果完整性
-    const isValid = (
-      result.ageGroup !== '未知' &&
-      result.score > 0 &&
-      result.comments.length > 0 &&
-      result.suggestions.length > 0
-    );
-
-    if (!isValid) {
-      return parseAIResponseBackup(aiResponse);
-    }
-
     console.log('解析结果:', result);
     return result;
+
   } catch (error) {
     console.error('解析失败:', error);
     return parseAIResponseBackup(aiResponse);
   }
-};
+}
 
 // 备用解析函数
-const parseAIResponseBackup = (aiResponse) => {
+function parseAIResponseBackup(aiResponse) {
   const lines = aiResponse.split('\n').map(line => line.trim());
   
   const result = {
@@ -222,11 +232,11 @@ const parseAIResponseBackup = (aiResponse) => {
   lines.forEach(line => {
     if (!line) return;
     
-    // 清理行内容
     const cleanLine = line.replace(/\*\*/g, '').replace(/###/g, '').trim();
     
-    // 识别当前部分
-    if (cleanLine.includes('专业评价')) {
+    if (cleanLine.includes('年龄段判断')) {
+      currentSection = 'age';
+    } else if (cleanLine.includes('专业评价')) {
       currentSection = 'evaluation';
     } else if (cleanLine.includes('总体评分')) {
       currentSection = 'score';
@@ -236,70 +246,18 @@ const parseAIResponseBackup = (aiResponse) => {
       currentSection = 'methods';
     }
     
-    // 根据不同部分处理内容
-    if (cleanLine.includes('年龄段') && cleanLine.includes('：')) {
-      result.ageGroup = cleanLine.split('：')[1].trim();
-    } else if (currentSection === 'score' && cleanLine.match(/\d+分/)) {
-      result.score = parseInt(cleanLine.match(/(\d+)分/)[1]);
-    } else if (currentSection === 'evaluation' && cleanLine.match(/^[1-4]\./)) {
-      const category = cleanLine.split('：')[0].replace(/^\d+\.\s*/, '');
-      const content = cleanLine.split('：')[1];
-      if (content) {
-        result.comments.push(`${category}：${content}`);
-      }
-    } else if (currentSection === 'suggestions' && cleanLine.match(/^\d+\./)) {
-      result.suggestions.push(cleanLine.replace(/^\d+\.\s*/, ''));
-    } else if (currentSection === 'methods' && cleanLine.match(/^\d+\./)) {
-      result.methods.push(cleanLine.replace(/^\d+\.\s*/, ''));
+    if (currentSection === 'age' && line.includes('-')) {
+      result.ageGroup = line.trim().replace('-', '').trim();
+    } else if (currentSection === 'score' && line.match(/\d+分/)) {
+      result.score = parseInt(line.match(/(\d+)分/)[1]);
+    } else if (currentSection === 'evaluation' && line.match(/^\d+\./)) {
+      result.comments.push(line.replace(/^\d+\.\s*/, ''));
+    } else if (currentSection === 'suggestions' && line.match(/^\d+\./)) {
+      result.suggestions.push(line.replace(/^\d+\.\s*/, ''));
+    } else if (currentSection === 'methods' && line.match(/^\d+\./)) {
+      result.methods.push(line.replace(/^\d+\.\s*/, ''));
     }
   });
 
   return result;
-};
-
-// 测试函数
-const testAPI = async () => {
-  try {
-    const testRequestData = {
-      model: config.MODEL,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { 
-              type: "text", 
-              text: "What's in this image?" 
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg"
-              }
-            }
-          ]
-        }
-      ],
-      max_tokens: 2000
-    };
-
-    console.log('发送测试请求数据:', testRequestData);
-    
-    const response = await makeRequest(
-      `${config.API_BASE_URL}/chat/completions`,
-      testRequestData
-    );
-    
-    console.log('测试响应数据:', response);
-    return response;
-
-  } catch (error) {
-    console.error('测试失败:', error);
-    throw error;
-  }
-};
-
-export default {
-  imageToBase64,
-  analyzeHandwriting,
-  testAPI
-}; 
+} 

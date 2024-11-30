@@ -135,14 +135,22 @@ Page({
     });
 
     try {
-      // 将图片转换为base64
-      const base64Image = await api.imageToBase64(this.data.tempImagePath);
+      // 1. 上传图片到云存储
+      const uploadResult = await wx.cloud.uploadFile({
+        cloudPath: `handwriting/${Date.now()}.jpg`,
+        filePath: this.data.tempImagePath,
+      });
+
+      // 2. 调用云函数进行分析
+      const analysisResult = await wx.cloud.callFunction({
+        name: 'analyzeHandwriting',
+        data: {
+          fileID: uploadResult.fileID,
+        }
+      });
       
-      // 调用AI进行分析
-      const analysisResult = await api.analyzeHandwriting(base64Image);
-      
-      // 保存结果并跳转
-      wx.setStorageSync('analysisResult', analysisResult);
+      // 3. 保存结果并跳转
+      wx.setStorageSync('analysisResult', analysisResult.result);
       
       wx.hideLoading();
       this.setData({ analyzing: false });

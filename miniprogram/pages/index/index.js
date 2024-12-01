@@ -135,13 +135,15 @@ Page({
     });
 
     try {
-      // 1. 上传图片到云存储
+      console.log('1. 开始上传图片');
       const uploadResult = await wx.cloud.uploadFile({
         cloudPath: `handwriting/${Date.now()}.jpg`,
         filePath: this.data.tempImagePath,
       });
+      
+      console.log('2. 图片上传成功:', uploadResult);
 
-      // 2. 调用云函数进行分析
+      console.log('3. 调用云函数');
       const analysisResult = await wx.cloud.callFunction({
         name: 'analyzeHandwriting',
         data: {
@@ -149,81 +151,45 @@ Page({
         }
       });
       
-      // 3. 保存结果并跳转
-      wx.setStorageSync('analysisResult', analysisResult.result);
+      console.log('4. 云函数返回结果:', analysisResult);
+
+      // 检查返回结果的结构
+      if (!analysisResult.result) {
+        throw new Error('未收到分析结果');
+      }
+
+      // 保存结果并跳转
+      const resultData = {
+        ...analysisResult.result,
+        imageUrl: this.data.tempImagePath  // 保存图片路径
+      };
+      
+      wx.setStorageSync('analysisResult', resultData);
       
       wx.hideLoading();
       this.setData({ analyzing: false });
       
-      wx.navigateTo({
-        url: '/pages/result/result',
-      });
+      // 延迟跳转，确保数据保存完成
+      setTimeout(() => {
+        wx.navigateTo({
+          url: '/pages/result/result',
+        });
+      }, 100);
+
     } catch (err) {
       console.error('分析失败:', err);
       wx.hideLoading();
       this.setData({ analyzing: false });
       
-      wx.showToast({
-        title: '分析失败，请重试',
-        icon: 'error'
-      });
-    }
-  },
-
-  // 上传图片到服务器
-  uploadToServer: function(filePath) {
-    return new Promise((resolve, reject) => {
-      // TODO: 实现真实的上传逻辑
-      // 这里暂时模拟上传
-      setTimeout(() => {
-        resolve({
-          imageId: 'test_image_id_' + Date.now()
-        });
-      }, 1500);
-    });
-  },
-
-  // 获取分析结果
-  getAnalysisResult: function(imageId) {
-    return new Promise((resolve, reject) => {
-      // TODO: 实现真实的结果获取逻辑
-      // 这里暂时模拟结果
-      setTimeout(() => {
-        resolve({
-          score: 85,
-          comments: [
-            "整体书写工整，结构匀称",
-            "笔画连贯，显示出良好的书写习惯",
-            "建议注意字间距的把控"
-          ]
-        });
-      }, 1500);
-    });
-  },
-
-  // 在Page对象中添加测试函数
-  testAPICall: async function() {
-    try {
-      wx.showLoading({
-        title: '测试API中...',
-      });
-      
-      const result = await api.testAPI();
-      console.log('测试结果:', result);
-      
-      wx.hideLoading();
       wx.showModal({
-        title: '测试结果',
-        content: JSON.stringify(result.data, null, 2),
-        showCancel: false
-      });
-    } catch (err) {
-      console.error('测试失败:', err);
-      wx.hideLoading();
-      wx.showToast({
-        title: '测试失败',
-        icon: 'error'
+        title: '分析失败',
+        content: err.message || '请重试',
+        showCancel: false,
+        success: () => {
+          // 重置图片
+          this.resetImage();
+        }
       });
     }
-  },
+  }
 });

@@ -6,34 +6,26 @@ Page({
    */
   data: {
     result: null,
-    loading: true
+    imageUrl: ''
   },
 
   /**
    * 生命周期函数--监听页面加载
    */
   onLoad(options) {
-    try {
-      const result = wx.getStorageSync('analysisResult');
-      console.log('获取到的评价结果:', result);
-      
-      if (result) {
-        this.setData({
-          result: result,
-          loading: false
-        });
-      } else {
-        throw new Error('No result found');
-      }
-    } catch (err) {
-      console.error('获取结果失败:', err);
-      this.setData({ 
-        loading: false,
-        error: '获取结果失败，请返回重试'
+    const result = wx.getStorageSync('analysisResult');
+    if (result) {
+      this.setData({
+        result: result,
+        imageUrl: result.imageUrl
       });
+    } else {
       wx.showToast({
         title: '获取结果失败',
-        icon: 'error'
+        icon: 'error',
+        complete: () => {
+          wx.navigateBack();
+        }
       });
     }
   },
@@ -91,5 +83,13 @@ Page({
     wx.navigateBack({
       delta: 1
     });
+  },
+
+  goBack: function() {
+    wx.navigateBack();
+  },
+
+  reAnalyze: function() {
+    wx.navigateBack();
   }
 })

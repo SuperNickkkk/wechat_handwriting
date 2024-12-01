@@ -1,24 +1,121 @@
 <!--index.wxml-->
-<view class="container">
-  <view class="title">手写字体评价</view>
-  
-  <view class="upload-container">
-    <!-- 图片预览区域 -->
-    <view class="preview-area" wx:if="{{tempImagePath}}">
-      <image mode="aspectFit" src="{{tempImagePath}}" />
+<view class="page-container">
+  <!-- 顶部导航栏 -->
+  <view class="header">
+    <text class="app-title">墨奇AI书童</text>
+    <view class="avatar">
+      <open-data type="userAvatarUrl"></open-data>
     </view>
-    
-    <!-- 上传按钮区域 -->
-    <view class="button-group" wx:if="{{!tempImagePath}}">
-      <button class="upload-btn" bindtap="chooseImage">从相册选择</button>
-      <button class="upload-btn" bindtap="takePhoto">拍照上传</button>
-      <button class="test-btn" bindtap="testAPICall">测试API</button>
+  </view>
+
+  <!-- 主要内容区域 -->
+  <scroll-view scroll-y class="main-content">
+    <view class="title-section">
+      <text class="sub-title">让AI书童陪你玩转书法，成为小小书法家！</text>
     </view>
-    
-    <!-- 操作按钮区域 -->
-    <view class="action-group" wx:if="{{tempImagePath}}">
-      <button class="action-btn" type="primary" bindtap="uploadImage">开始分析</button>
-      <button class="action-btn" bindtap="resetImage">重新选择</button>
+
+    <!-- 上传区域 -->
+    <view class="upload-container {{tempImagePath ? 'has-image' : ''}}">
+      <!-- 图片预览区域 -->
+      <view class="preview-area" wx:if="{{tempImagePath}}">
+        <image mode="aspectFit" src="{{tempImagePath}}" class="preview-image" />
+      </view>
+      
+      <!-- 上传按钮区域 -->
+      <view class="upload-area" wx:if="{{!tempImagePath}}">
+        <view class="upload-icon"></view>
+        <text class="upload-text">点击上传你的书法作品</text>
+        <text class="upload-tip">  </text>
+        <view class="button-group">
+          <button class="action-btn primary" bindtap="chooseImage">从相册选择</button>
+          <button class="action-btn primary" bindtap="takePhoto">拍照上传</button>
+        </view>
+      </view>
+      
+      <!-- 操作按钮区域 -->
+      <view class="action-group" wx:if="{{tempImagePath}}">
+        <button class="action-btn primary" bindtap="uploadImage">开始分析</button>
+        <button class="action-btn secondary" bindtap="resetImage">重新选择</button>
+      </view>
+    </view>
+
+    <!-- 最新成就 -->
+    <view class="achievement-card">
+      <view class="card-header">
+        <text class="card-title">最新成就</text>
+        <text class="view-all">查看全部</text>
+      </view>
+      <view class="achievement-content">
+        <view class="achievement-icon">
+          <image src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkQ3MDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjgiIHI9IjciPjwvY2lyY2xlPjxwb2x5bGluZSBwb2ludHM9IjguMjEgMTMuODkgNyAyMyAxMiAyMCAxNyAyMyAxNS43OSAxMy44OCI+PC9wb2x5bGluZT48L3N2Zz4=" class="icon"/>
+        </view>
+        <view class="achievement-info">
+          <text class="achievement-name">初级书法家</text>
+          <text class="achievement-desc">完成第一次书法评价</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 写字小贴士 -->
+    <view class="tips-card">
+      <text class="tips-title">写字小贴士</text>
+      <text class="tips-content">保持良好的坐姿，握笔姿势要正确。写字时要放松心情，保持专注。</text>
+    </view>
+
+    <!-- 学习进度 -->
+    <view class="progress-section">
+      <view class="progress-header">
+        <text>本周练习进度</text>
+        <text>4/7天</text>
+      </view>
+      <progress percent="57" stroke-width="3" activeColor="#4CAF50" backgroundColor="#E0E0E0"/>
+    </view>
+
+    <!-- 优秀作品展示 -->
+    <view class="showcase-section">
+      <view class="card-header">
+        <text class="card-title">优秀作品展示</text>
+        <text class="view-all">查看更多</text>
+      </view>
+      <view class="showcase-grid">
+        <view class="showcase-item" wx:for="{{4}}" wx:key="index">
+          <view class="showcase-placeholder">
+            <view class="placeholder-icon"></view>
+          </view>
+          <view class="showcase-info">
+            <text class="showcase-title">{{index === 0 ? '春天的风' : index === 1 ? '夏日荷塘' : index === 2 ? '秋叶飘零' : '冬雪皑皑'}}</text>
+            <text class="showcase-author">{{index === 0 ? '小明' : index === 1 ? '小红' : index === 2 ? '小华' : '小芳'}}</text>
+            <view class="showcase-likes">
+              <image src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRjY5QjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjAgOC45VjRoLTQuOUwxMiAwIDguOSA0SDR2NC45TDAgMTJsNCwzLjFWMjBoNC45TDEyIDI0bDMuMS00SDIwdi00LjlMMjQgMTJsLTQtMy4xeiI+PC9wYXRoPjwvc3ZnPg==" class="like-icon"/>
+              <text class="like-count">{{45 - index * 7}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 底部导航栏 -->
+  <view class="tab-bar">
+    <view class="tab-item">
+      <image src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRkYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNCAxOVY1YTIgMiAwIDAgMSAyLTJoMTJhMiAyIDAgMCAxIDIgMnYxNGEyIDIgMCAwIDEtMiAySDZhMiAyIDAgMCAxLTItMnoiPjwvcGF0aD48cG9seWxpbmUgcG9pbnRzPSI4IDMgOCA3IDEyIDUgMTYgNyAxNiAzIj48L3BvbHlsaW5lPjwvc3ZnPg==" class="tab-icon"/>
+      <text class="tab-text">作品集</text>
+    </view>
+    <view class="tab-item">
+      <image src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRkYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cG9seWdvbiBwb2ludHM9IjEyIDIgMTUuMDkgOC4yNiAyMiA5LjI3IDE3IDE0LjE0IDE4LjE4IDIxLjAyIDEyIDE3Ljc3IDUuODIgMjEuMDIgNyAxNC4xNCAyIDkuMjcgOC45MSA4LjI6IDEyIDIiPjwvcG9seWdvbj48L3N2Zz4=" class="tab-icon"/>
+      <text class="tab-text">学习</text>
+    </view>
+    <view class="tab-item">
+      <image src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRkYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjgiIHI9IjciPjwvY2lyY2xlPjxwb2x5bGluZSBwb2ludHM9IjguMjEgMTMuODkgNyAyMyAxMiAyMCAxNyAyMyAxNS43OSAxMy44OCI+PC9wb2x5bGluZT48L3N2Zz4=" class="tab-icon"/>
+      <text class="tab-text">成就</text>
+    </view>
+    <view class="tab-item">
+      <image src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRkYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48bGluZSB4MT0iMTgiIHkxPSI2IiB4Mj0iNiIgeTI9IjE4Ij48L2xpbmU+PGxpbmUgeDE9IjYiIHkxPSI2IiB4Mj0iMTgiIHkyPSIxOCI+PC9saW5lPjwvc3ZnPg==" class="tab-icon"/>
+      <text class="tab-text">进步</text>
+    </view>
+    <view class="tab-item">
+      <image src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkZGRkYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjAgMjF2LTJhNCA0IDAgMCAwLTQtNEg4YTQgNCAwIDAgMC00IDR2MiI+PC9wYXRoPjxjaXJjbGUgY3g9IjEyIiBjeT0iNyIgcj0iNCI+PC9jaXJjbGU+PC9zdmc+" class="tab-icon"/>
+      <text class="tab-text">我的</text>
     </view>
   </view>
 </view>

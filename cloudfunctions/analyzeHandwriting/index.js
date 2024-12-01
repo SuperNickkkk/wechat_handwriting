@@ -19,29 +19,28 @@ const headers = {
 // 主函数
 exports.main = async (event, context) => {
   try {
-    // 检查模块是否正确加载
-    if (!cloud) {
-      throw new Error('wx-server-sdk 未正确加载');
-    }
-
     const { fileID } = event;
-    console.log('开始处理请求:', {
+    console.log('1. 收到请求参数:', {
       fileID,
-      env: cloud.DYNAMIC_CURRENT_ENV,
-      context
+      API_BASE_URL,
+      MODEL,
+      hasAPIKey: !!API_KEY
+    });
+
+    // 1. 获取图片访问链接
+    console.log('2. 开始获取图片访问链接:', fileID);
+    const urlResult = await cloud.getTempFileURL({
+      fileList: [fileID]
     });
     
-    // 1. 从云存储下载图片
-    const res = await cloud.downloadFile({
-      fileID: fileID,
-    });
-    const buffer = res.fileContent;
+    if (!urlResult.fileList || !urlResult.fileList[0].tempFileURL) {
+      throw new Error('获取图片URL失败');
+    }
     
-    // 2. 转换为base64
-    const base64Image = buffer.toString('base64');
-    console.log('图片转换完成，准备发送请求');
+    const imageUrl = urlResult.fileList[0].tempFileURL;
+    console.log('3. 获取图片URL成功:', imageUrl);
     
-    // 3. 构建请求数据
+    // 构建请求数据
     const requestData = {
       model: MODEL,
       messages: [
@@ -98,7 +97,7 @@ exports.main = async (event, context) => {
             {
               type: "image_url",
               image_url: {
-                url: `data:image/jpeg;base64,${base64Image}`
+                url: imageUrl
               }
             }
           ]
@@ -107,48 +106,74 @@ exports.main = async (event, context) => {
       max_tokens: 2000
     };
 
-    console.log('发送请求到:', `${API_BASE_URL}/chat/completions`);
+    console.log('4. 准备发送API请求:', {
+      url: `${API_BASE_URL}/chat/completions`,
+      model: MODEL,
+      imageUrl: imageUrl.substring(0, 50) + '...'
+    });
     
-    // 4. 发送API请求
+    // 发送API请求
     const response = await axios.post(
       `${API_BASE_URL}/chat/completions`,
       requestData,
       { headers }
     );
 
-    console.log('API响应:', response.data);
+    console.log('5. 收到API响应:', {
+      status: response.status,
+      hasChoices: !!response.data?.choices,
+      firstChoice: !!response.data?.choices?.[0],
+      hasContent: !!response.data?.choices?.[0]?.message?.content
+    });
 
-    // 5. 解析响应
-    const result = parseAIResponse(response.data.choices[0].message.content);
+    // 解析响应
+    const aiContent = response.data.choices[0].message.content;
+    console.log('6. AI响应原文:', aiContent);
+
+    const analysisResult = parseAIResponse(aiContent);
+    console.log('7. 解析后的结果:', analysisResult);
     
-    // 6. 保存分析记录到数据库
+    // 保存到数据库
     const db = cloud.database();
-    await db.collection('analysis_records').add({
+    console.log('8. 准备保存到数据库');
+    
+    const dbResult = await db.collection('analysis_records').add({
       data: {
         fileID,
-        result,
+        result: analysisResult,
         createdAt: db.serverDate(),
         updatedAt: db.serverDate(),
         _openid: cloud.getWXContext().OPENID,
         env: cloud.DYNAMIC_CURRENT_ENV
       }
     });
+    
+    console.log('9. 数据库保存完成:', dbResult);
 
-    return result;
+    return {
+      success: true,
+      ...analysisResult
+    };
 
   } catch (error) {
-    console.error('云函数执行错误:', error);
+    console.error('云函数执行错误:', {
+      message: error.message,
+      stack: error.stack,
+      response: error.response?.data
+    });
+    
     return {
+      success: false,
       error: error.message,
-      stack: error.stack
+      details: error.response?.data || error.stack
     };
   }
 };
 
-// 解析AI返回的评价内容
+// 修改解析函数，添加日志
 function parseAIResponse(aiResponse) {
   try {
-    console.log('开始解析AI响应:', aiResponse);
+    console.log('开始解析AI响应，原文长度:', aiResponse.length);
 
     // 提取年龄段判断
     const ageMatch = aiResponse.match(/年龄段判断[\s\S]*?([^#\n]+)/);
@@ -205,11 +230,11 @@ function parseAIResponse(aiResponse) {
       rawResponse: aiResponse
     };
 
-    console.log('解析结果:', result);
+    console.log('解析完成，结果:', result);
     return result;
 
   } catch (error) {
-    console.error('解析失败:', error);
+    console.error('主解析函数失败，使用备用解析:', error);
     return parseAIResponseBackup(aiResponse);
   }
 }

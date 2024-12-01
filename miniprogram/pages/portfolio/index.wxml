@@ -1,0 +1,58 @@
+<!--portfolio.wxml-->
+<view class="portfolio-container">
+  <!-- 顶部导航 -->
+  <view class="header">
+    <view class="back-btn" bindtap="goBack">
+      <view class="icon-back"></view>
+      <text>返回</text>
+    </view>
+    <text class="page-title">书法作品集</text>
+    <view class="placeholder"></view>
+  </view>
+
+  <!-- 主要内容区域 -->
+  <scroll-view scroll-y class="main-content">
+    <!-- 热门作品展示 -->
+    <view class="featured-section">
+      <view class="section-header">
+        <view class="icon-flame"></view>
+        <text class="section-title">热门作品</text>
+      </view>
+      <view class="featured-work" wx:if="{{featuredWork}}">
+        <view class="featured-image">
+          <view class="placeholder-image"></view>
+        </view>
+        <view class="featured-info">
+          <text class="work-title">{{featuredWork.title}}</text>
+          <text class="work-author">作者：{{featuredWork.author}}</text>
+          <view class="likes-info">
+            <view class="icon-heart"></view>
+            <text>{{featuredWork.likes}} 赞</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 作品列表 -->
+    <view class="works-grid">
+      <view class="work-item" wx:for="{{works}}" wx:key="id">
+        <view class="work-image">
+          <view class="placeholder-image"></view>
+        </view>
+        <view class="work-info">
+          <text class="work-title">{{item.title}}</text>
+          <text class="work-author">作者：{{item.author}}</text>
+          <view class="work-footer">
+            <view class="likes-info">
+              <view class="icon-heart"></view>
+              <text>{{item.likes}} 赞</text>
+            </view>
+            <view class="like-btn" bindtap="handleLike" data-id="{{item.id}}">
+              <text>点赞</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</view> 
